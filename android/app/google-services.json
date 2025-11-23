@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "645094028036",
+    "project_id": "chat-moaz",
+    "storage_bucket": "chat-moaz.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:645094028036:android:d1995b645d5acc7690d651",
+        "android_client_info": {
+          "package_name": "com.example.authentication_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_mXeXjwOz-KFFXdwYNf82lFAfkiqL78Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
