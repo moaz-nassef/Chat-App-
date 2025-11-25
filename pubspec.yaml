@@ -38,6 +38,8 @@ dependencies:
   firebase_core: ^4.2.1
   firebase_auth: ^6.1.2
   modal_progress_hud_nsn: ^0.5.1
+  cloud_firestore: ^6.1.0
+  flutter_chat_bubble: ^2.0.2
 
 dev_dependencies:
   flutter_test:

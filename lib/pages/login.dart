@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 
-
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -58,84 +57,84 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
   }
 
   // ✅ Function للـ Login
- void _handleLogin() async {
-  if (_formKey.currentState!.validate()) {
-    setState(() => isLoading = true);
+  void _handleLogin() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => isLoading = true);
 
-    try {
-      var auth = FirebaseAuth.instance;
+      try {
+        var auth = FirebaseAuth.instance;
 
-      // تسجيل الدخول
-      UserCredential user = await auth.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+        // تسجيل الدخول
+        UserCredential user = await auth.signInWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
 
-      print("✔ تم تسجيل الدخول!");
-      print("User: ${user.user!.email}");
-      print("Name: ${user.user!.displayName}");
+        print("✔ تم تسجيل الدخول!");
+        print("User: ${user.user!.email}");
+        print("Name: ${user.user!.displayName}");
 
-      // رسالة نجاح
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('✔ تم تسجيل الدخول بنجاح! 🎉'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      Navigator.pushReplacementNamed(context, "/chat");
+        // رسالة نجاح
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✔ تم تسجيل الدخول بنجاح! 🎉'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pushReplacementNamed(
+          context,
+          "/chat",
+          arguments: user.user!.email,
+        );
 
+        // الانتقال إلى صفحة الشات
+      } on FirebaseAuthException catch (e) {
+        String errorMessage = "";
 
-      // الانتقال إلى صفحة الشات
+        if (e.code == 'user-not-found') {
+          errorMessage = "❌ هذا الإيميل غير مسجل";
+        } else if (e.code == 'wrong-password') {
+          errorMessage = "❌ كلمة المرور غير صحيحة";
+        } else if (e.code == 'invalid-email') {
+          errorMessage = "❌ صيغة الإيميل غير صالحة";
+        } else if (e.code == 'user-disabled') {
+          errorMessage = "❌ هذا الحساب تم تعطيله";
+        } else {
+          errorMessage = "❌ خطأ غير متوقع: ${e.message}";
+        }
 
-    } on FirebaseAuthException catch (e) {
-      String errorMessage = "";
-
-      if (e.code == 'user-not-found') {
-        errorMessage = "❌ هذا الإيميل غير مسجل";
-      } else if (e.code == 'wrong-password') {
-        errorMessage = "❌ كلمة المرور غير صحيحة";
-      } else if (e.code == 'invalid-email') {
-        errorMessage = "❌ صيغة الإيميل غير صالحة";
-      } else if (e.code == 'user-disabled') {
-        errorMessage = "❌ هذا الحساب تم تعطيله";
-      } else {
-        errorMessage = "❌ خطأ غير متوقع: ${e.message}";
+        // عرض رسالة الخطأ
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } catch (e) {
+        print(e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("❌ حدث خطأ غير متوقع"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
 
-      // عرض رسالة الخطأ
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-
-    } catch (e) {
-      print(e);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("❌ حدث خطأ غير متوقع"),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      setState(() => isLoading = false);
     }
-
-    setState(() => isLoading = false);
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
     return ModalProgressHUD(
-      inAsyncCall:isLoading,
+      inAsyncCall: isLoading,
       child: Scaffold(
         body: Container(
           padding: EdgeInsets.zero,
-      
+
           width: double.infinity,
           height: double.infinity,
           decoration: BoxDecoration(
@@ -169,7 +168,7 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                     fit: BoxFit.contain,
                   ),
                 ),
-      
+
                 // ✅ المحتوى الرئيسي
                 FadeTransition(
                   opacity: _fadeAnimation,
@@ -185,7 +184,7 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               SizedBox(height: 40),
-      
+
                               // ✅ العنوان
                               Text(
                                 "تسجيل الدخول",
@@ -204,9 +203,9 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-      
+
                               SizedBox(height: 30),
-      
+
                               // ✅ الأيقونة مع shadow
                               Container(
                                 padding: EdgeInsets.all(20),
@@ -226,9 +225,9 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                                   height: 200,
                                 ),
                               ),
-      
+
                               SizedBox(height: 40),
-      
+
                               // ✅ Email Field
                               _buildTextField(
                                 controller: _emailController,
@@ -246,9 +245,9 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                                   return null;
                                 },
                               ),
-      
+
                               SizedBox(height: 20),
-      
+
                               // ✅ Password Field
                               _buildTextField(
                                 controller: _passwordController,
@@ -279,9 +278,9 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                                   return null;
                                 },
                               ),
-      
+
                               SizedBox(height: 12),
-      
+
                               // ✅ Forgot Password
                               Align(
                                 alignment: Alignment.centerRight,
@@ -299,9 +298,9 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                                   ),
                                 ),
                               ),
-      
+
                               SizedBox(height: 20),
-      
+
                               // ✅ Login Button
                               Container(
                                 width: 280,
@@ -335,9 +334,9 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                                   ),
                                 ),
                               ),
-      
+
                               SizedBox(height: 20),
-      
+
                               // ✅ Sign up link
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -370,7 +369,7 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
                                   ),
                                 ],
                               ),
-      
+
                               SizedBox(height: 30),
                             ],
                           ),

@@ -1,5 +1,5 @@
 import 'package:authentication_app/firebase_options.dart';
-import 'package:authentication_app/pages/chat.dart';
+import 'package:authentication_app/pages/pages_chat.dart';
 import 'package:authentication_app/pages/login.dart';
 import 'package:authentication_app/pages/sigunp.dart';
 import 'package:authentication_app/pages/start.dart';
@@ -8,10 +8,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 void main() async {
-   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
