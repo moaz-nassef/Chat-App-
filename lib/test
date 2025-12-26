@@ -1,0 +1,372 @@
+import 'package:flutter/material.dart';
+import 'dart:math' as math;
+
+class MusicPlayer extends StatefulWidget {
+  const MusicPlayer({super.key});
+
+  @override
+  State<MusicPlayer> createState() => _MusicPlayerState();
+}
+
+class _MusicPlayerState extends State<MusicPlayer>
+    with SingleTickerProviderStateMixin {
+  bool isPlaying = false;
+  double currentTime = 138; // 2:18 in seconds
+  double totalTime = 245; // 4:05 in seconds
+  
+  late AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 20),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  void _togglePlayPause() {
+    setState(() {
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        _rotationController.repeat();
+      } else {
+        _rotationController.stop();
+      }
+    });
+  }
+
+  String _formatTime(double seconds) {
+    int minutes = (seconds / 60).floor();
+    int secs = (seconds % 60).floor();
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ✅ Top Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Back button
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back_ios_new, size: 18),
+                      padding: EdgeInsets.zero,
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                  
+                  // Menu button
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.more_horiz, size: 24),
+                      padding: EdgeInsets.zero,
+                      onPressed: () {},
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            // ✅ Album Art Container
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(40),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 30,
+                        offset: Offset(0, 15),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(40),
+                    child: Stack(
+                      children: [
+                        // Background Image
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Color(0xFF1A2332),
+                                  Color(0xFF2A3F5F),
+                                  Color(0xFF1A2332),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Whale/Wave Image effect
+                        Positioned.fill(
+                          child: Padding(
+                            padding: const EdgeInsets.all(40.0),
+                            child: AnimatedBuilder(
+                              animation: _rotationController,
+                              builder: (context, child) {
+                                return Transform.translate(
+                                  offset: Offset(
+                                    math.sin(_rotationController.value * 2 * math.pi) * 10,
+                                    math.cos(_rotationController.value * 2 * math.pi) * 5,
+                                  ),
+                                  child: Opacity(
+                                    opacity: 0.6,
+                                    child: Icon(
+                                      Icons.waves_rounded,
+                                      size: 150,
+                                      color: Color(0xFF4A6FA5),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+
+                        // Song Title at bottom
+                        Positioned(
+                          bottom: 30,
+                          left: 0,
+                          right: 0,
+                          child: Column(
+                            children: [
+                              Text(
+                                "Let You Down",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                "NF",
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 40),
+
+            // ✅ Progress Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Column(
+                children: [
+                  // Time display
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _formatTime(currentTime),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  SizedBox(height: 12),
+                  
+                  // Custom Progress Bar
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Background track
+                      Container(
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      
+                      // Progress track
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: currentTime / totalTime,
+                          child: Container(
+                            height: 6,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.grey[800]!,
+                                  Colors.grey[600]!,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      // Progress indicator (circle)
+                      Positioned(
+                        left: (MediaQuery.of(context).size.width - 80) * (currentTime / totalTime),
+                        child: Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[900],
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 50),
+
+            // ✅ Control Buttons
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Shuffle button
+                  _buildControlButton(
+                    icon: Icons.shuffle,
+                    size: 24,
+                    onPressed: () {},
+                  ),
+
+                  // Previous button
+                  _buildControlButton(
+                    icon: Icons.skip_previous_rounded,
+                    size: 32,
+                    onPressed: () {},
+                  ),
+
+                  // Play/Pause button (BIG)
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        isPlaying ? Icons.pause : Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                      onPressed: _togglePlayPause,
+                    ),
+                  ),
+
+                  // Next button
+                  _buildControlButton(
+                    icon: Icons.skip_next_rounded,
+                    size: 32,
+                    onPressed: () {},
+                  ),
+
+                  // Repeat button
+                  _buildControlButton(
+                    icon: Icons.repeat,
+                    size: 24,
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 50),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required double size,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      width: 45,
+      height: 45,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        icon: Icon(icon),
+        iconSize: size,
+        color: Colors.grey[800],
+        onPressed: onPressed,
+      ),
+    );
+  }
+}
