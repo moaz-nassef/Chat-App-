@@ -1,23 +1,31 @@
 class Message {
   final String text;
-  // final bool isSentByMe;
-
-  final String email;
-  final DateTime time;
+  final String senderId;
+  final String receiverId;
+  final DateTime? time;
+  final String status;
 
   Message({
     required this.text,
+    required this.senderId,
+    required this.receiverId,
     required this.time,
-    required this.email,
-    // required this.isSentByMe,
-  }); //  });
+    this.status = 'sent',
+  });
 
   factory Message.fromJson(Map jsonData) {
     return Message(
-      text: jsonData['messages']?.toString() ?? '',
-      email: jsonData['email']?.toString() ?? '',
-      time: (jsonData['time']).toDate(),
-      // isSentByMe: jsonData['isSentByMe'] ?? false,
+      text:
+          jsonData['text']?.toString() ??
+          jsonData['messages']?.toString() ??
+          '',
+      senderId:
+          jsonData['senderId']?.toString() ??
+          jsonData['email']?.toString() ??
+          '',
+      receiverId: jsonData['receiverId']?.toString() ?? '',
+      time: jsonData['createdAt']?.toDate() ?? jsonData['time']?.toDate(),
+      status: jsonData['status']?.toString() ?? 'sent',
     );
   }
 }

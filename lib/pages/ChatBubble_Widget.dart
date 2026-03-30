@@ -142,7 +142,7 @@ class sendtmoazChatBubble extends StatelessWidget {
                 textAlign: TextAlign.left,
               ),
               Text(
-                '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
+                formatBubbleTime(message.time),
                 style: TextStyle(
                   fontSize: 15,
                   color: const Color.fromARGB(179, 5, 3, 3),
@@ -189,7 +189,7 @@ class restmoazChatBubble extends StatelessWidget {
                 textAlign: TextAlign.left,
               ),
               Text(
-                '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
+                formatBubbleTime(message.time),
                 style: TextStyle(
                   fontSize: 15,
                   color: const Color.fromARGB(179, 5, 3, 3),
@@ -201,4 +201,11 @@ class restmoazChatBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+String formatBubbleTime(DateTime? time) {
+  if (time == null) return '--:--';
+  final hour = time.hour.toString().padLeft(2, '0');
+  final minute = time.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
 }

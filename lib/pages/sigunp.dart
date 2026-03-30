@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:authentication_app/services/chat_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
@@ -11,6 +12,7 @@ class Signup extends StatefulWidget {
 }
 
 class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
+  final ChatService _chatService = ChatService();
   // ✅ Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -66,71 +68,60 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
   // ✅ Function للتسجيل
   void _handleSignup() async {
     if (_formKey.currentState!.validate()) {
-      isLoading = true;
-      // TODO: إضافة الـ signup logic هنا
-      print('Name: ${_nameController.text}');
-      print('Email: ${_emailController.text}');
-      print('Password: ${_passwordController.text}');
+      setState(() => isLoading = true);
 
       try {
-        var auth = FirebaseAuth.instance;
-
-        UserCredential user = await auth.createUserWithEmailAndPassword(
+        // إنشاء الحساب
+        await _chatService.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
+          displayName: _nameController.text.trim(),
         );
 
-        // تحديث اسم المستخدم
-        await user.user!.updateDisplayName(_nameController.text.trim());
-        await user.user!.reload();
-
-        print("✔ تم إنشاء الحساب بنجاح!");
-        print("User: ${user.user!.email}");
-        print("Name: ${user.user!.displayName}");
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("✔ تم إنشاء الحساب بنجاح")));
-        // Show success message
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('تم إنشاء الحساب بنجاح! 🎉'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
 
-
-        Navigator.pushReplacementNamed(context, "/login");
+        Navigator.pushReplacementNamed(context, "/chats");
       } on FirebaseAuthException catch (e) {
+        if (!mounted) return;
         if (e.code == 'weak-password') {
-          SnackBar(
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            content: Text(
-              "❌ خطأ: The password provided is too weak.",
-              style: TextStyle(color: Colors.black),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              content: Text("❌ خطأ: The password provided is too weak."),
             ),
           );
         } else if (e.code == 'email-already-in-use') {
-          SnackBar(
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            content: Text(
-              "❌ خطأ: The account already exists for that email.",
-              style: TextStyle(color: Colors.black),
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              content: Text(
+                "❌ خطأ: The account already exists for that email.",
+              ),
             ),
           );
         }
       } catch (e) {
-        print(e);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            content: Text("❌ حدث خطأ غير متوقع"),
+          ),
+        );
       }
-      isLoading = false;
-      setState(() {});
+      if (!mounted) return;
+      setState(() => isLoading = false);
     }
-
-    // Navigate to login or home
-    // Navigator.pushReplacementNamed(context, '/login');
   }
 
   @override
@@ -162,17 +153,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                     fit: BoxFit.contain,
                   ),
                 ),
-                // Positioned(
-                //   right: 0,
-                //   bottom: 0,
-                //   child: Image.asset(
-                //     'assets/images/login_background.png',
-                //     width: 100,
-                //     height: 100,
-                //     fit: BoxFit.contain,
-                //   ),
-                // ),
-      
+
                 // ✅ المحتوى الرئيسي
                 FadeTransition(
                   opacity: _fadeAnimation,
@@ -189,7 +170,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               SizedBox(height: 30),
-      
+
                               // ✅ العنوان
                               Text(
                                 "إنشاء حساب جديد",
@@ -208,9 +189,9 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
-      
+
                               SizedBox(height: 15),
-      
+
                               // // ✅ الأيقونة
                               Container(
                                 // padding: EdgeInsets.all(20),
@@ -230,13 +211,13 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                   height: 200,
                                 ),
                               ),
-      
+
                               // SvgPicture.asset(
                               //   "assets/icons/signup.svg",
                               //   height: 200,
                               // ),
                               SizedBox(height: 15),
-      
+
                               // ✅ Name Field
                               _buildTextField(
                                 controller: _nameController,
@@ -254,9 +235,9 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                   return null;
                                 },
                               ),
-      
+
                               SizedBox(height: 18),
-      
+
                               // ✅ Email Field
                               _buildTextField(
                                 controller: _emailController,
@@ -275,9 +256,9 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                   return null;
                                 },
                               ),
-      
+
                               SizedBox(height: 18),
-      
+
                               // ✅ Password Field
                               _buildTextField(
                                 controller: _passwordController,
@@ -308,9 +289,9 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                   return null;
                                 },
                               ),
-      
+
                               SizedBox(height: 18),
-      
+
                               // ✅ Confirm Password Field
                               _buildTextField(
                                 controller: _confirmPasswordController,
@@ -342,9 +323,9 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                   return null;
                                 },
                               ),
-      
+
                               SizedBox(height: 30),
-      
+
                               // ✅ Sign Up Button
                               Container(
                                 width: 280,
@@ -378,9 +359,9 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                   ),
                                 ),
                               ),
-      
+
                               SizedBox(height: 20),
-      
+
                               // ✅ Login link
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -416,7 +397,7 @@ class _SignupState extends State<Signup> with SingleTickerProviderStateMixin {
                                   ),
                                 ],
                               ),
-      
+
                               SizedBox(height: 20),
                             ],
                           ),

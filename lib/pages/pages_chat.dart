@@ -1,9 +1,8 @@
-import 'package:authentication_app/pages/ChatBubble_Widget.dart';
-import 'package:authentication_app/pages/Message%20Model%20.dart';
+import 'package:authentication_app/models/message_model.dart';
 import 'package:authentication_app/pages/Widget__chat_bubble.dart';
+import 'package:authentication_app/services/chat_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Chat extends StatefulWidget {
   const Chat({super.key});
@@ -13,29 +12,51 @@ class Chat extends StatefulWidget {
 }
 
 class _ChatState extends State<Chat> {
-  CollectionReference massages = FirebaseFirestore.instance.collection(
-    'messages',
-  );
-  TextEditingController _messageController = TextEditingController();
-  final _controller = ScrollController();
+  final ChatService _chatService = ChatService();
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    var currentUser = FirebaseAuth.instance.currentUser!.email;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return const Scaffold(body: Center(child: Text('Please login first.')));
+    }
 
-    var email = ModalRoute.of(context)!.settings.arguments;
-    return StreamBuilder<QuerySnapshot>(
-      stream: massages.orderBy("time", descending: true).snapshots(),
+    final args = ModalRoute.of(context)?.settings.arguments as Map?;
+    final chatId = args?['chatId']?.toString() ?? '';
+    final receiverId = args?['receiverId']?.toString() ?? '';
+    final receiverName = args?['receiverName']?.toString() ?? '';
+
+    if (chatId.isEmpty || receiverId.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text('Missing conversation information.')),
+      );
+    }
+
+    // Mark all messages as read when opening chat
+    _chatService.markAllMessagesAsRead(
+      chatId: chatId,
+      currentUid: currentUser.uid,
+    );
+
+    return StreamBuilder<List<MessageModel>>(
+      stream: _chatService.getMessages(chatId),
       builder: (context, snapshot) {
-        List<Message> messagesList = [];
+        List<MessageModel> messagesList = [];
         if (snapshot.hasData) {
-          for (var element in snapshot.data!.docs) {
-            messagesList.add(Message.fromJson(element.data() as Map));
-          }
+          messagesList = snapshot.data!.toList().reversed.toList();
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_controller.hasClients) {
               _controller.animateTo(
-                0,
-                // _controller.position.maxScrollExtent,
+                _controller.position.maxScrollExtent,
                 duration: Duration(milliseconds: 300),
                 curve: Curves.easeIn,
               );
@@ -43,50 +64,40 @@ class _ChatState extends State<Chat> {
           });
 
           return Scaffold(
-            appBar: AppBar(title: Text('Chat')),
+            appBar: AppBar(
+              title: Text(receiverName.isEmpty ? 'Private Chat' : receiverName),
+            ),
             body: Column(
               children: [
                 Expanded(
                   child: ListView.builder(
-                    reverse: true,
                     controller: _controller,
                     itemCount: messagesList.length,
-                    itemBuilder:
-                        (context, index) =>
-                            // sendtmoazChatBubble(message: messagesList[index]),
-                            // restmoazChatBubble(message: messagesList[index]),
-                            // senderBubble(message: messagesList[index]),
-                            // receiverBubble(message: messagesList[index])
-                            // messagesList[index].email == currentUser
-                            //     ? sendtmoazChatBubble(
-                            //       message: messagesList[index],
-                            //     )
-                            //     : restmoazChatBubble(
-                            //       message: messagesList[index],
-                            //     ),
-                            messagesList[index].email == currentUser
-                                ? senderBubble(message: messagesList[index])
-                                : receiverBubble(message: messagesList[index]),
+                    itemBuilder: (context, index) {
+                      final message = messagesList[index];
+                      final isSender = message.senderId == currentUser.uid;
+                      return isSender
+                          ? senderBubble(message: message)
+                          : receiverBubble(message: message);
+                    },
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.all(7),
+                  padding: const EdgeInsets.all(7),
                   child: Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: _messageController,
-
                           onSubmitted: (value) {
-                            massages.add({
-                              'messages': value,
-                              'isSentByMe': true,
-                              // 'isSentByMe': true,
-                              'time': DateTime.now(),
-                              'email': currentUser,
-                            });
-                            // setState(() {});
-                            _messageController.clear();
+                            if (value.trim().isNotEmpty) {
+                              _chatService.sendMessage(
+                                chatId: chatId,
+                                senderId: currentUser.uid,
+                                text: value.trim(),
+                              );
+                              _messageController.clear();
+                            }
                           },
                           decoration: InputDecoration(
                             hintText: 'Type your message...',
@@ -101,7 +112,20 @@ class _ChatState extends State<Chat> {
                           style: TextStyle(fontSize: 16),
                         ),
                       ),
-                      IconButton(onPressed: () {}, icon: Icon(Icons.send)),
+                      IconButton(
+                        onPressed: () {
+                          final text = _messageController.text.trim();
+                          if (text.isNotEmpty) {
+                            _chatService.sendMessage(
+                              chatId: chatId,
+                              senderId: currentUser.uid,
+                              text: text,
+                            );
+                            _messageController.clear();
+                          }
+                        },
+                        icon: const Icon(Icons.send),
+                      ),
                     ],
                   ),
                 ),
@@ -109,7 +133,7 @@ class _ChatState extends State<Chat> {
             ),
           );
         } else {
-          return Text('Loading...');
+          return const Scaffold(body: Center(child: Text('Loading...')));
         }
       },
     );

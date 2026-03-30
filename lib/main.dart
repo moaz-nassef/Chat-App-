@@ -1,4 +1,5 @@
 import 'package:authentication_app/firebase_options.dart';
+import 'package:authentication_app/pages/chats_list.dart';
 import 'package:authentication_app/pages/pages_chat.dart';
 import 'package:authentication_app/pages/login.dart';
 import 'package:authentication_app/pages/sigunp.dart';
@@ -27,6 +28,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const Login(),
         '/signup': (context) => const Signup(),
         "/chat": (context) => const Chat(),
+        "/chats": (context) => ChatsListPage(),
       },
     );
   }

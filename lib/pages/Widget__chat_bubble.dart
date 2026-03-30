@@ -1,12 +1,10 @@
-import 'package:authentication_app/pages/Message%20Model%20.dart';
-import 'package:flutter_chat_bubble/bubble_type.dart';
+import 'package:authentication_app/models/message_model.dart';
 import 'package:flutter_chat_bubble/chat_bubble.dart';
-import 'package:flutter_chat_bubble/clippers/chat_bubble_clipper_9.dart';
 import 'package:flutter/material.dart';
 
 class senderBubble extends StatelessWidget {
   const senderBubble({super.key, required this.message});
-  final Message message;
+  final MessageModel message;
   @override
   Widget build(BuildContext context) {
     return ChatBubble(
@@ -25,7 +23,7 @@ class senderBubble extends StatelessWidget {
               style: TextStyle(color: Colors.black, fontSize: 18),
             ),
             Text(
-              '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
+              _formatTime(message.timestamp),
               style: TextStyle(
                 fontSize: 15,
                 color: const Color.fromARGB(179, 5, 3, 3),
@@ -40,7 +38,7 @@ class senderBubble extends StatelessWidget {
 
 class receiverBubble extends StatelessWidget {
   const receiverBubble({super.key, required this.message});
-  final Message message;
+  final MessageModel message;
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +57,7 @@ class receiverBubble extends StatelessWidget {
               style: TextStyle(color: Colors.black, fontSize: 18),
             ),
             Text(
-              '${message.time.hour.toString().padLeft(2, '0')}:${message.time.minute.toString().padLeft(2, '0')}',
+              _formatTime(message.timestamp),
               style: TextStyle(
                 fontSize: 15,
                 color: const Color.fromARGB(179, 5, 3, 3),
@@ -70,4 +68,11 @@ class receiverBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatTime(DateTime? time) {
+  if (time == null) return '--:--';
+  final hour = time.hour.toString().padLeft(2, '0');
+  final minute = time.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
 }

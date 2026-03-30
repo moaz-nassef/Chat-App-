@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:authentication_app/services/chat_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
@@ -11,6 +12,7 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
+  final ChatService _chatService = ChatService();
   // ✅ Controllers للـ TextFields
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -62,31 +64,22 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
       setState(() => isLoading = true);
 
       try {
-        var auth = FirebaseAuth.instance;
-
         // تسجيل الدخول
-        UserCredential user = await auth.signInWithEmailAndPassword(
+        await _chatService.signIn(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
 
-        print("✔ تم تسجيل الدخول!");
-        print("User: ${user.user!.email}");
-        print("Name: ${user.user!.displayName}");
-
         // رسالة نجاح
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('✔ تم تسجيل الدخول بنجاح! 🎉'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.pushReplacementNamed(
-          context,
-          "/chat",
-          arguments: user.user!.email,
-        );
+        Navigator.pushReplacementNamed(context, "/chats");
 
         // الانتقال إلى صفحة الشات
       } on FirebaseAuthException catch (e) {
@@ -113,9 +106,9 @@ class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
           ),
         );
       } catch (e) {
-        print(e);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text("❌ حدث خطأ غير متوقع"),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
