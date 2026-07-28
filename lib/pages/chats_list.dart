@@ -2,6 +2,7 @@ import 'package:authentication_app/models/chat_model.dart';
 import 'package:authentication_app/models/user_model.dart';
 import 'package:authentication_app/pages/users_list.dart';
 import 'package:authentication_app/services/chat_service.dart';
+import 'package:authentication_app/constants/ai_constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -16,6 +17,11 @@ class _ChatsListPageState extends State<ChatsListPage> {
   final ChatService _chatService = ChatService();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  String _getAiChatId(String currentUid) {
+    final sorted = [currentUid, AiConstants.aiUserId]..sort();
+    return '${sorted[0]}_${sorted[1]}';
+  }
 
   @override
   void dispose() {
@@ -82,19 +88,103 @@ class _ChatsListPageState extends State<ChatsListPage> {
                 }
 
                 final chats = snapshot.data ?? [];
-                if (chats.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No private chats yet. Start one from + button.',
-                    ),
-                  );
-                }
+                final aiChats =
+                    chats
+                        .where(
+                          (chat) =>
+                              chat.participants.contains(AiConstants.aiUserId),
+                        )
+                        .toList();
+                final ChatModel? aiChat = aiChats.isNotEmpty ? aiChats.first : null;
+                final privateChats =
+                    chats
+                        .where(
+                          (chat) =>
+                              !chat.participants.contains(AiConstants.aiUserId),
+                        )
+                        .toList();
 
                 return ListView.separated(
-                  itemCount: chats.length,
+                  itemCount: privateChats.length + 1,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
-                    final chat = chats[index];
+                    if (index == 0) {
+                      final aiSubtitle =
+                          aiChat == null || aiChat.lastMessage.isEmpty
+                              ? AiConstants.aiDefaultMessage
+                              : aiChat.lastMessage;
+                      final aiUnreadCount =
+                          aiChat?.getUnreadCountForUser(currentUser.uid) ?? 0;
+
+                      if (_searchQuery.isNotEmpty) {
+                        final matchesAi = AiConstants.aiDisplayName
+                            .toLowerCase()
+                            .contains(
+                              _searchQuery,
+                            ) ||
+                            AiConstants.aiEmail.toLowerCase().contains(
+                              _searchQuery,
+                            ) ||
+                            aiSubtitle.toLowerCase().contains(_searchQuery);
+                        if (!matchesAi) {
+                          return const SizedBox.shrink();
+                        }
+                      }
+
+                      return ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Color(0xFF1A73E8),
+                          child: Icon(Icons.smart_toy, color: Colors.white),
+                        ),
+                        title: const Text(AiConstants.aiDisplayName),
+                        subtitle: Text(
+                          aiSubtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing:
+                            aiUnreadCount > 0
+                                ? CircleAvatar(
+                                  radius: 12,
+                                  backgroundColor: Colors.green,
+                                  child: Text(
+                                    aiUnreadCount.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                                : null,
+                        onTap: () async {
+                          final chatId =
+                              aiChat?.id ?? _getAiChatId(currentUser.uid);
+                          if (aiChat == null) {
+                            await _chatService.createOrGetChat(
+                              currentUid: currentUser.uid,
+                              otherUid: AiConstants.aiUserId,
+                              currentEmail:
+                                  currentUser.email ?? 'unknown@chat.app',
+                              otherEmail: AiConstants.aiEmail,
+                            );
+                          }
+
+                          if (context.mounted) {
+                            Navigator.pushNamed(
+                              context,
+                              '/chat',
+                              arguments: {
+                                'chatId': chatId,
+                                'receiverId': AiConstants.aiUserId,
+                                'receiverName': AiConstants.aiDisplayName,
+                              },
+                            );
+                          }
+                        },
+                      );
+                    }
+
+                    final chat = privateChats[index - 1];
                     final otherUserId = chat.getOtherParticipantId(
                       currentUser.uid,
                     );

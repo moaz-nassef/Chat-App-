@@ -11,12 +11,18 @@ class FirestoreMessageDataSource {
     required String text,
     String type = 'text',
   }) async {
+    final chatRef = _firestore.collection('chats').doc(chatId);
     final batch = _firestore.batch();
 
-    // Add message to messages subcollection
-    final msgRef =
-        _firestore.collection('chats').doc(chatId).collection('messages').doc();
+    // Ensure chat document exists before writing messages.
+    batch.set(chatRef, {
+      'lastMessage': '',
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'lastMessageSenderId': '',
+    }, SetOptions(merge: true));
 
+    // Add message to messages subcollection.
+    final msgRef = chatRef.collection('messages').doc();
     batch.set(msgRef, {
       'senderId': senderId,
       'text': text,
@@ -25,15 +31,22 @@ class FirestoreMessageDataSource {
       'read': false,
     });
 
-    // Update last message in chat
-    final chatRef = _firestore.collection('chats').doc(chatId);
-    batch.update(chatRef, {
+    // Update last message in chat.
+    batch.set(chatRef, {
       'lastMessage': text,
       'lastMessageTime': FieldValue.serverTimestamp(),
       'lastMessageSenderId': senderId,
-    });
+    }, SetOptions(merge: true));
 
-    await batch.commit();
+    try {
+      await batch.commit();
+    } on FirebaseException catch (e) {
+      throw FirebaseException(
+        plugin: e.plugin,
+        code: e.code,
+        message: 'Failed to send message: ${e.message}',
+      );
+    }
   }
 
   // Get messages for a chat (real-time)

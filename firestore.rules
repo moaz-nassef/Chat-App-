@@ -24,7 +24,13 @@ service cloud.firestore {
         allow read: if request.auth != null 
           && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         allow create: if request.auth != null 
-          && request.resource.data.senderId == request.auth.uid
+          && (
+            request.resource.data.senderId == request.auth.uid
+            || (
+              request.resource.data.senderId == "ai_agent"
+              && "ai_agent" in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+            )
+          )
           && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         allow update: if request.auth != null 
           && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
