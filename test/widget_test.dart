@@ -1,30 +1,50 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
+import 'package:chat_app/core/utils/date_formatter.dart';
+import 'package:chat_app/core/utils/validators.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:authentication_app/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('Validators', () {
+    test('email accepts a valid address', () {
+      expect(Validators.email('user@example.com'), isNull);
+    });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    test('email rejects empty / invalid values', () {
+      expect(Validators.email(''), isNotNull);
+      expect(Validators.email(null), isNotNull);
+      expect(Validators.email('not-an-email'), isNotNull);
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('password requires at least 6 chars', () {
+      expect(Validators.password('12345'), isNotNull);
+      expect(Validators.password('123456'), isNull);
+    });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    test('confirmPassword must match the original', () {
+      final confirm = Validators.confirmPassword('secret1');
+      expect(confirm('secret1'), isNull);
+      expect(confirm('other'), isNotNull);
+    });
+
+    test('displayName requires at least 3 chars', () {
+      expect(Validators.displayName('ab'), isNotNull);
+      expect(Validators.displayName('Moaz'), isNull);
+    });
+  });
+
+  group('DateFormatter', () {
+    test('time formats HH:mm with padding', () {
+      expect(DateFormatter.time(DateTime(2026, 7, 28, 9, 5)), '09:05');
+    });
+
+    test('chatListTime shows time for today', () {
+      final now = DateTime.now();
+      final result = DateFormatter.chatListTime(now);
+      expect(result, DateFormatter.time(now));
+    });
+
+    test('chatListTime shows Yesterday', () {
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      expect(DateFormatter.chatListTime(yesterday), 'Yesterday');
+    });
   });
 }

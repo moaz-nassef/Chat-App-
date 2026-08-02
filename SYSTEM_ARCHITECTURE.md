@@ -564,3 +564,164 @@ new_project/
 │       └── custom_txtfield.dart
 └── pubspec.yaml
 ```
+
+
+---
+
+# 💬 Chat App - الـ System Architecture (النسخة المُحسّنة v2)
+
+> **تاريخ التحديث:** 28 يوليو 2026
+> **الهدف:** نفس الـ Template بتاع Hungry App لكن مطبق على Chat App حقيقي، مع إصلاح كل نقاط الضعف اللي اتسجلت فوق
+
+**الفرق الجوهري عن Hungry App:** الشات **Realtime (Streams)** مش Request/Response — فكل الـ Cubits بتدير `StreamSubscription` وبتعمل `cancel()` في `close()`.
+
+---
+
+## 1. 📁 هيكل المشروع
+
+```
+Chat-App/
+├── lib/
+│   ├── main.dart                               # نقطة الدخول (Firebase init + DI + runApp)
+│   ├── app.dart                                # ChatApp (Theme + Router + PresenceService)
+│   ├── firebase_options.dart
+│   │
+│   ├── core/                                   # ⚙️ الطبقة المشتركة
+│   │   ├── constants/
+│   │   │   ├── app_colors.dart                 # ألوان الثيم (purple/blue identity)
+│   │   │   ├── ai_constants.dart               # إعدادات الـ AI (model, userId, type)
+│   │   │   └── firestore_paths.dart            # ⭐ كل الـ collections/fields في مكان واحد
+│   │   ├── errors/
+│   │   │   └── failure.dart                    # ⭐ sealed Failure (Auth/Firestore/Ai/Unknown) + mapping عربي
+│   │   ├── utils/
+│   │   │   ├── validators.dart                 # ⭐ Validation حقيقي (email/password/name/confirm)
+│   │   │   └── date_formatter.dart             # HH:mm / Yesterday / Last seen
+│   │   ├── theme/
+│   │   │   └── app_theme.dart                  # ThemeData موحد
+│   │   ├── router/
+│   │   │   └── app_router.dart                 # ⭐ AppRoutes + onGenerateRoute + ChatViewArgs (typed)
+│   │   ├── services/
+│   │   │   └── presence_service.dart           # ⭐ online/offline مع App Lifecycle
+│   │   └── di_container.dart                   # 🧩 GetIt (initDependencies)
+│   │
+│   ├── features/
+│   │   ├── auth/                               # 🔐
+│   │   │   ├── cubit/      (auth_cubit + auth_state)
+│   │   │   ├── data/       (auth_datasource + auth_repo + user_model)
+│   │   │   ├── views/      (auth_gate, welcome, start, login, signup)
+│   │   │   └── widgets/    (auth_scaffold, auth_text_field, auth_button)
+│   │   ├── chats/                              # 💬 قائمة المحادثات
+│   │   │   ├── cubit/      (chats_cubit + chats_state)
+│   │   │   ├── data/       (chat_datasource + chat_repo + chat_model)
+│   │   │   ├── views/      (chats_list_view)
+│   │   │   └── widgets/    (chat_tile, ai_chat_tile, unread_badge)
+│   │   ├── chat_detail/                        # 📨 المحادثة المفتوحة
+│   │   │   ├── cubit/      (messages_cubit + messages_state)
+│   │   │   ├── data/       (message_datasource + message_repo + message_model)
+│   │   │   ├── views/      (chat_view)
+│   │   │   └── widgets/    (message_input_field, ai_typing_indicator)
+│   │   ├── users/                              # 👥 كل المستخدمين
+│   │   │   ├── cubit/      (users_cubit + users_state)
+│   │   │   ├── data/       (users_datasource + users_repo)
+│   │   │   └── views/      (users_list_view)
+│   │   └── ai_chat/                            # 🤖
+│   │       └── data/       (ai_repo — Gemini sessions per chatId)
+│   │
+│   └── shared/widgets/                         # ♻️
+│       ├── chat_bubble.dart                    # ⭐ Bubble واحدة (sender/receiver/AI + read ticks)
+│       ├── user_avatar.dart                    # Avatar + online dot
+│       ├── search_text_field.dart              # شريط البحث الموحد
+│       ├── empty_state.dart                    # حالة الفراغ الموحدة
+│       └── app_snack_bar.dart                  # SnackBar موحد (success/error)
+│
+├── test/widget_test.dart                       # Unit tests (Validators + DateFormatter)
+└── pubspec.yaml                                # name: chat_app ✅
+```
+
+---
+
+## 2. 🎯 الـ Design Patterns (مع إصلاح نقاط ضعف النسخة القديمة)
+
+| المشكلة في v1 | الحل في v2 |
+|---------------|------------|
+| Cubit بيعتمد على Cubit | ❌ ممنوع — كل cubit يعتمد على **Repos بس**، والـ view بتمرر الـ uid |
+| `BlocProvider` جوه `build` بيتكرر | الـ provider في أعلى الـ screen مرة واحدة (أو singleton للـ AuthCubit) |
+| Dead code متوثق | ✅ اتمسح كل حاجة (models مكررة، bubbles مكررة، `Message Model .dart`, `sigunp.dart`, ملف `lib/test` بتاع music player!) |
+| تسمية مش موحدة | كل المجلدات والملفات `snake_case` |
+| `print()` في errors | `sealed class Failure` مع رسائل عربية mapped من error codes |
+| Collection names متناثرة | `FirestorePaths` في مكان واحد |
+| `FirebaseAuth.instance` جوه الـ UI | الـ UI بتقرأ من `AuthCubit` بس — مفيش Firebase imports في أي view |
+| Map arguments في الـ routes | `ChatViewArgs` typed + `AppRouter.onGenerateRoute` |
+
+### الـ Cubits والـ States:
+
+| Feature | Cubit | States | Stream? |
+|---------|-------|--------|---------|
+| Auth | `AuthCubit` (singleton) | `AuthInitial`, `AuthLoading`, `AuthAuthenticated(user)`, `AuthUnauthenticated`, `AuthError`, `AuthPasswordResetSent` | ✅ `authStateChanges` |
+| Chats | `ChatsCubit` (factory) | `ChatsInitial`, `ChatsLoading`, `ChatsLoaded(chats, usersById, searchQuery)`, `ChatsError` | ✅ streamين مدمجين (chats + users) |
+| Messages | `MessagesCubit` (factory) | `MessagesInitial`, `MessagesLoading`, `MessagesLoaded(messages, isAiTyping, isSending, actionError)`, `MessagesError` | ✅ messages stream |
+| Users | `UsersCubit` (factory) | `UsersInitial`, `UsersLoading`, `UsersLoaded(users, searchQuery, isCreatingChat)`, `UsersChatReady` (navigation event), `UsersError` | ✅ users stream |
+
+### تدفق البيانات:
+
+```
+View → context.read<XCubit>().method()
+     → Cubit → Repo → DataSource → Firebase
+     ← DataSource يرمي FirebaseException
+     ← Repo يحولها لـ Failure (رسالة عربية)
+     ← Cubit يمسك Failure → emit(Error)
+     ← View: BlocListener → AppSnackBar.error()
+```
+
+---
+
+## 3. ⚡ المميزات الجديدة (مش موجودة في النسخة القديمة)
+
+| الميزة | إزاي اتعملت |
+|--------|-------------|
+| **AuthGate** | الـ home بيتبدل تلقائياً (Welcome ↔ Chats) حسب الـ auth stream — مفيش navigation يدوي بعد login/logout |
+| **Unread badges شغالة فعلياً** | `FieldValue.increment(1)` في نفس الـ batch بتاع الإرسال + reset في نفس الـ batch بتاع markAsRead |
+| **Read receipts** | ✓ / ✓✓ أزرق في الـ bubble (الـ field كان موجود ومش متعرض) |
+| **Online / Last seen** | `PresenceService` (lifecycle) + `watchUser` stream في الـ AppBar |
+| **حذف رسالة** | Long-press على رسالتك → dialog تأكيد |
+| **حذف محادثة** | Long-press على الـ tile → batch delete (رسائل + document) |
+| **نسيت كلمة المرور** | `sendPasswordResetEmail` — كان TODO في v1 |
+| **AI typing indicator** | 3 نقاط متحركة + الـ AI بقى sender حقيقي (`ai_agent`) بدل trick الـ type |
+| **AI unread badge** | الـ AI بيبعت كـ sender منفصل → الـ badge بيشتغل عليه |
+| **Search موحد** | `SearchTextField` واحد + الـ filtering جوه الـ states (مش جوه الـ build) |
+| **Empty states** | `EmptyState` widget موحد |
+| **Unit tests** | 8 اختبارات (Validators + DateFormatter) |
+| **تحسين أداء** | `reverse: true` ListView (مفيش reverse يدوي للقائمة)، `listenWhen`/`buildWhen` لتقليل rebuilds |
+
+### قرارات مدروسة:
+- **مفيش `searchUserByEmail`** — كانت موجودة ومش مستخدمة (dead code)
+- **اتشال `modal_progress_hud_nsn` و `flutter_chat_bubble`** — الـ cubit states والـ bubble الـ custom بيغنوا عنهم
+- **AI senderId = `ai_agent`** — الـ Firestore rules بتسمح بكده، فمفيش داعي للـ workaround
+
+---
+
+## 4. 📦 الـ Packages
+
+| الـ Package | الاستخدام |
+|-------------|-----------|
+| `flutter_bloc` | State Management |
+| `get_it` | Dependency Injection |
+| `equatable` | مقارنة الـ States/Models |
+| `firebase_core` / `firebase_auth` / `cloud_firestore` | Backend |
+| `firebase_ai` | Gemini AI assistant |
+| `flutter_svg` | أيقونات الـ auth screens |
+| `cupertino_icons` | أيقونات |
+
+---
+
+## 5. 📋 قابلية النقل (Portable)
+
+| القطعة | Portable? |
+|--------|:---------:|
+| `core/` كامل (failure, validators, paths, theme, router, di) | ✅ |
+| أي feature مجلد مستقل | ✅ |
+| `shared/widgets/` | ✅ |
+| `PresenceService` | ✅ لأي مشروع Firebase |
+| نمط **Streams + Cubit** (cancel في close) | ✅ لأي realtime feature |
+
+> **القاعدة الجديدة المستفادة:** لو الـ feature realtime، الـ cubit يمتلك الـ `StreamSubscription`، يعمل `cancel()` القديم قبل كل subscription جديد، و`cancel()` في `close()`.
