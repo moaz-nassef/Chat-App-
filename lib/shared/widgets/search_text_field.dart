@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_colors.dart';
 
-/// Rounded grey search bar used in chats/users lists.
+/// Rounded, tinted search bar used in chats/users lists.
 class SearchTextField extends StatelessWidget {
   const SearchTextField({
     super.key,
@@ -18,25 +18,40 @@ class SearchTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: TextField(
         controller: controller,
+        textInputAction: TextInputAction.search,
         decoration: InputDecoration(
           hintText: hintText,
-          prefixIcon: const Icon(Icons.search),
+          hintStyle: TextStyle(color: AppColors.textSecondary.withValues(alpha: 0.8)),
+          prefixIcon: const Icon(Icons.search, color: AppColors.primaryMedium),
           suffixIcon:
               controller.text.isEmpty
                   ? null
                   : IconButton(
                     icon: const Icon(Icons.close),
+                    color: AppColors.textSecondary,
                     onPressed: () {
                       controller.clear();
                       onChanged('');
                     },
                   ),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(30)),
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
           filled: true,
-          fillColor: AppColors.fieldFill,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: AppColors.primaryLight.withValues(alpha: 0.15)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: AppColors.primaryMedium, width: 1.4),
+          ),
         ),
         onChanged: onChanged,
       ),

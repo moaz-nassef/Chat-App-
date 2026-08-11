@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -13,6 +14,11 @@ import '../features/chat_detail/data/message_repo.dart';
 import '../features/chats/cubit/chats_cubit.dart';
 import '../features/chats/data/chat_datasource.dart';
 import '../features/chats/data/chat_repo.dart';
+import '../features/calls/cubit/call_cubit.dart';
+import '../features/calls/data/call_datasource.dart';
+import '../features/calls/data/call_repo.dart';
+import '../features/calls/data/permission_service.dart';
+import '../features/calls/data/webrtc_service.dart';
 import '../features/users/cubit/users_cubit.dart';
 import '../features/users/data/users_datasource.dart';
 import '../features/users/data/users_repo.dart';
@@ -33,12 +39,16 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<UsersDataSource>(() => UsersDataSource());
   sl.registerLazySingleton<ChatDataSource>(() => ChatDataSource());
   sl.registerLazySingleton<MessageDataSource>(() => MessageDataSource());
+  sl.registerLazySingleton<CallDataSource>(
+    () => CallDataSource(FirebaseFirestore.instance),
+  );
 
   // ─── Repos ─────────────────────────────────────────────────────
   sl.registerLazySingleton<AuthRepo>(() => AuthRepo(sl(), sl()));
   sl.registerLazySingleton<UsersRepo>(() => UsersRepo(sl()));
   sl.registerLazySingleton<ChatRepo>(() => ChatRepo(sl()));
   sl.registerLazySingleton<MessageRepo>(() => MessageRepo(sl()));
+  sl.registerLazySingleton<CallRepo>(() => CallRepo(sl()));
 
   // AI settings (local persistence) — loaded eagerly so AiRepo has a
   // valid in-memory config before the first message is sent.
@@ -49,6 +59,8 @@ Future<void> initDependencies() async {
 
   // ─── Services ──────────────────────────────────────────────────
   sl.registerLazySingleton<PresenceService>(() => PresenceService(sl()));
+  sl.registerLazySingleton<PermissionService>(() => PermissionService());
+  sl.registerLazySingleton<WebRtcService>(() => WebRtcService());
 
   // ─── Cubits ────────────────────────────────────────────────────
   sl.registerLazySingleton<AuthCubit>(() => AuthCubit(sl()));
@@ -56,4 +68,5 @@ Future<void> initDependencies() async {
   sl.registerFactory<MessagesCubit>(() => MessagesCubit(sl(), sl()));
   sl.registerFactory<UsersCubit>(() => UsersCubit(sl(), sl()));
   sl.registerFactory<AiSettingsCubit>(() => AiSettingsCubit(sl(), sl()));
+  sl.registerLazySingleton<CallCubit>(() => CallCubit(sl(), sl(), sl()));
 }

@@ -10,6 +10,8 @@ import '../../../shared/widgets/chat_bubble.dart';
 import '../../../shared/widgets/user_avatar.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../auth/cubit/auth_state.dart';
+import '../../calls/cubit/call_cubit.dart';
+import '../../calls/cubit/call_state.dart';
 import '../../users/data/users_repo.dart';
 import '../cubit/messages_cubit.dart';
 import '../cubit/messages_state.dart';
@@ -38,16 +40,28 @@ class ChatView extends StatelessWidget {
                 myUid: authState.user.uid,
                 receiverId: args.receiverId,
               ),
-      child: _ChatBody(args: args, myUid: authState.user.uid),
+      child: _ChatBody(
+        args: args,
+        myUid: authState.user.uid,
+        myName: authState.user.displayName,
+        myPhotoUrl: authState.user.photoUrl,
+      ),
     );
   }
 }
 
 class _ChatBody extends StatefulWidget {
-  const _ChatBody({required this.args, required this.myUid});
+  const _ChatBody({
+    required this.args,
+    required this.myUid,
+    required this.myName,
+    this.myPhotoUrl,
+  });
 
   final ChatViewArgs args;
   final String myUid;
+  final String myName;
+  final String? myPhotoUrl;
 
   @override
   State<_ChatBody> createState() => _ChatBodyState();
@@ -72,6 +86,29 @@ class _ChatBodyState extends State<_ChatBody> {
     _messageController.clear();
     context.read<MessagesCubit>().sendMessage(text);
     _scrollToBottom();
+  }
+
+  Future<void> _startCall() async {
+    final call = await context.read<CallCubit>().startCall(
+      callerId: widget.myUid,
+      callerName: widget.myName,
+      callerPhotoUrl: widget.myPhotoUrl,
+      receiverId: widget.args.receiverId,
+    );
+    if (!mounted) return;
+    if (call == null) {
+      final state = context.read<CallCubit>().state;
+      if (state is CallFailure) AppSnackBar.error(context, state.message);
+      return;
+    }
+    Navigator.pushNamed(
+      context,
+      AppRoutes.calling,
+      arguments: CallRouteArgs(
+        call: call,
+        peerName: widget.args.receiverName,
+      ),
+    );
   }
 
   void _scrollToBottom() {
@@ -118,6 +155,12 @@ class _ChatBodyState extends State<_ChatBody> {
       appBar: AppBar(
         title: _isAiChat ? _buildAiTitle() : _buildUserTitle(),
         actions: [
+          if (!_isAiChat)
+            IconButton(
+              icon: const Icon(Icons.call_outlined),
+              tooltip: 'مكالمة صوتية',
+              onPressed: _startCall,
+            ),
           if (_isAiChat)
             IconButton(
               icon: const Icon(Icons.settings_outlined),

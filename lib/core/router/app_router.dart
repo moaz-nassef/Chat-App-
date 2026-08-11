@@ -7,6 +7,10 @@ import '../../features/auth/views/start_view.dart';
 import '../../features/auth/views/welcome_view.dart';
 import '../../features/chat_detail/views/chat_view.dart';
 import '../../features/chats/views/chats_list_view.dart';
+import '../../features/calls/data/call_model.dart';
+import '../../features/calls/views/calling_view.dart';
+import '../../features/calls/views/in_call_view.dart';
+import '../../features/calls/views/incoming_call_view.dart';
 import '../../features/users/views/users_list_view.dart';
 
 /// Central route names — no magic strings in the views.
@@ -19,6 +23,9 @@ abstract class AppRoutes {
   static const String users = '/users';
   static const String chat = '/chat';
   static const String aiSettings = '/ai-settings';
+  static const String calling = '/calling';
+  static const String incomingCall = '/incoming-call';
+  static const String inCall = '/in-call';
 }
 
 /// Strongly-typed arguments for [AppRoutes.chat]
@@ -33,6 +40,19 @@ class ChatViewArgs {
   final String chatId;
   final String receiverId;
   final String receiverName;
+}
+
+/// Arguments shared by all call screens.
+class CallRouteArgs {
+  const CallRouteArgs({
+    required this.call,
+    required this.peerName,
+    this.peerPhotoUrl,
+  });
+
+  final CallModel call;
+  final String peerName;
+  final String? peerPhotoUrl;
 }
 
 /// onGenerateRoute — one place for all navigation wiring.
@@ -59,6 +79,21 @@ abstract class AppRouter {
         return _page(ChatView(args: args));
       case AppRoutes.aiSettings:
         return _page(const AiSettingsView());
+      case AppRoutes.calling:
+        final args = settings.arguments;
+        return args is CallRouteArgs
+            ? _page(CallingView(args: args))
+            : _page(const _RouteError(message: 'Missing call arguments'));
+      case AppRoutes.incomingCall:
+        final args = settings.arguments;
+        return args is CallRouteArgs
+            ? _page(IncomingCallView(args: args))
+            : _page(const _RouteError(message: 'Missing call arguments'));
+      case AppRoutes.inCall:
+        final args = settings.arguments;
+        return args is CallRouteArgs
+            ? _page(InCallView(args: args))
+            : _page(const _RouteError(message: 'Missing call arguments'));
       default:
         return _page(const _RouteError(message: 'Unknown route'));
     }

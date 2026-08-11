@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/constants/app_colors.dart';
 import '../../../core/di_container.dart';
 import '../../../core/router/app_router.dart';
 import '../../../shared/widgets/app_snack_bar.dart';
@@ -9,6 +10,7 @@ import '../../../shared/widgets/search_text_field.dart';
 import '../../../shared/widgets/user_avatar.dart';
 import '../../auth/cubit/auth_cubit.dart';
 import '../../auth/cubit/auth_state.dart';
+import '../../auth/data/user_model.dart';
 import '../cubit/users_cubit.dart';
 import '../cubit/users_state.dart';
 
@@ -55,12 +57,16 @@ class _UsersListBodyState extends State<_UsersListBody> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('All Users')),
+      backgroundColor: const Color(0xFFF7F4FA),
+      appBar: AppBar(
+        title: const Text('Contacts'),
+        centerTitle: false,
+      ),
       body: Column(
         children: [
           SearchTextField(
             controller: _searchController,
-            hintText: 'Search users by name or email...',
+            hintText: 'Search contacts...',
             onChanged:
                 (value) => context.read<UsersCubit>().setSearchQuery(value),
           ),
@@ -114,46 +120,170 @@ class _UsersListBodyState extends State<_UsersListBody> {
                   );
                 }
 
-                return ListView.separated(
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                   itemCount: users.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final user = users[index];
-                    return ListTile(
-                      leading: UserAvatar(
-                        initial: user.initial,
-                        photoUrl: user.photoUrl,
-                        online: user.online,
-                        showOnlineDot: true,
-                      ),
-                      title: Text(
-                        user.displayName.isEmpty
-                            ? user.email
-                            : user.displayName,
-                      ),
-                      subtitle: Text(user.email),
-                      trailing:
-                          loaded.isCreatingChat
-                              ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : null,
-                      onTap:
-                          loaded.isCreatingChat
-                              ? null
-                              : () => context.read<UsersCubit>().startChatWith(
-                                currentUid: widget.myUid,
-                                currentEmail: widget.myEmail,
-                                otherUser: user,
-                              ),
+                    return _UserCard(
+                      user: user,
+                      isBusy: loaded.isCreatingChat,
+                      onTap: loaded.isCreatingChat
+                          ? null
+                          : () => context.read<UsersCubit>().startChatWith(
+                            currentUid: widget.myUid,
+                            currentEmail: widget.myEmail,
+                            otherUser: user,
+                          ),
                     );
                   },
                 );
               },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Rounded card for one contact in the directory.
+class _UserCard extends StatelessWidget {
+  const _UserCard({
+    required this.user,
+    required this.isBusy,
+    required this.onTap,
+  });
+
+  final UserModel user;
+  final bool isBusy;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName =
+        user.displayName.isEmpty ? user.email : user.displayName;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        elevation: 0,
+        shadowColor: AppColors.primaryLight.withValues(alpha: 0.2),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                UserAvatar(
+                  initial: user.initial,
+                  photoUrl: user.photoUrl,
+                  online: user.online,
+                  showOnlineDot: true,
+                  radius: 26,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        user.email,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      _OnlineChip(online: user.online),
+                    ],
+                  ),
+                ),
+                if (isBusy)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        color: AppColors.primaryMedium,
+                        size: 20,
+                      ),
+                      onPressed: onTap,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small pill showing Online / Offline.
+class _OnlineChip extends StatelessWidget {
+  const _OnlineChip({required this.online});
+
+  final bool online;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = online ? const Color(0xFF2E7D32) : const Color(0xFF757575);
+    final bg = online
+        ? const Color(0xFF2E7D32).withValues(alpha: 0.10)
+        : const Color(0xFF757575).withValues(alpha: 0.10);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            online ? Icons.circle : Icons.circle_outlined,
+            size: 8,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            online ? 'Online' : 'Offline',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
             ),
           ),
         ],

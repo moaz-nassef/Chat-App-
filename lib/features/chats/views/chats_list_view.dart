@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/constants/ai_constants.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../core/di_container.dart';
 import '../../../core/router/app_router.dart';
 import '../../../shared/widgets/app_snack_bar.dart';
@@ -131,8 +132,10 @@ class _ChatsListBodyState extends State<_ChatsListBody> {
     final myUid = widget.currentUser.uid;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F4FA),
       appBar: AppBar(
         title: const Text('Chats'),
+        centerTitle: false,
         actions: [
           IconButton(
             onPressed: _confirmLogout,
@@ -186,9 +189,9 @@ class _ChatsListBodyState extends State<_ChatsListBody> {
                   );
                 }
 
-                return ListView.separated(
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
                   itemCount: visibleChats.length + (loaded.aiVisible ? 1 : 0),
-                  separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     // Pinned AI tile first.
                     if (loaded.aiVisible && index == 0) {
@@ -228,9 +231,10 @@ class _ChatsListBodyState extends State<_ChatsListBody> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => Navigator.pushNamed(context, AppRoutes.users),
-        child: const Icon(Icons.chat),
+        icon: const Icon(Icons.person_add_alt_1),
+        label: const Text('New Chat'),
       ),
     );
   }
