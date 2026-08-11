@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/constants/ai_constants.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/di_container.dart';
 import '../../../core/router/app_router.dart';
 import '../../../shared/widgets/app_snack_bar.dart';
