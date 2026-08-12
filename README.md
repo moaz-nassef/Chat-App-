@@ -8,6 +8,7 @@
 [![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white&color=0175C2)](https://dart.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-Cloud%20Firestore-FFCA28?style=for-the-badge&logo=firebase&logoColor=black&color=FFCA28)](https://firebase.google.com)
 [![Firebase AI](https://img.shields.io/badge/Firebase%20AI-Gemini%202.5-violet?style=for-the-badge&logo=google&logoColor=white)]
+[![Calls](https://img.shields.io/badge/Calls-WebRTC%20Audio-00A86B?style=for-the-badge&logo=webrtc&logoColor=white)](https://webrtc.org)
 [![State](https://img.shields.io/badge/State-BLoC%20%2F%20Cubit-purple?style=for-the-badge&color=9C27B0)](https://pub.dev/packages/flutter_bloc)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge&color=43A047)]()
 
@@ -26,6 +27,7 @@ Powered by **Flutter + Firebase**, it delivers:
 - 🟢 **Live presence** — online / offline / last‑seen, synced with the app lifecycle
 - 🤖 **A built‑in AI assistant** (Firebase AI / Gemini) that remembers context per chat
 - 🔌 **Bring your own AI** — connect OpenAI, Claude, DeepSeek, Grok, OpenRouter or any custom provider
+- 📞 **Private audio calls** — real-time WebRTC calls with an incoming-call flow, mute and speaker controls
 - 🌓 **Light & dark themes** with a beautiful purple→blue identity
 - ✨ **Buttery animations** — staggered entrances, pulsing logo, animated bubbles
 
@@ -39,6 +41,7 @@ Powered by **Flutter + Firebase**, it delivers:
 | 🎛️ **7 AI providers** | Gemini, OpenRouter, OpenAI, Claude, DeepSeek, Grok & Custom — each with its own wire protocol (OpenAI‑compatible / Gemini native / Anthropic native). |
 | 🧪 **Live connection test** | Press "Test connection" to ping any provider and **measure latency** before you save — no more guessing. |
 | ⚡ **Atomic batches** | Sending a message updates the chat, writes the message, and increments the receiver's unread counter **in a single Firestore batch**. |
+| 📞 **Private call signalling** | Firestore carries WebRTC offers, answers and ICE candidates; only the caller and receiver can access a call. |
 | 🔒 **Real security rules** | Only conversation participants can read/write; the AI writes as `ai_agent` through a dedicated rule. |
 | 🪶 **RTL + Arabic UX** | Arabic‑first UI, right‑to‑left layout, and error messages mapped from error codes to friendly Arabic. |
 
@@ -63,6 +66,15 @@ Powered by **Flutter + Firebase**, it delivers:
 - `PresenceService` listens to **both** the auth session **and** the app lifecycle (foreground ⇄ background).
 - Fixes the classic cold‑start bug — a restored session comes **online immediately**.
 - Live *Online* / *Last seen 14:05* in the chat AppBar via a user stream.
+
+### 📞 WebRTC Audio Calls
+- Start a **voice call directly from a private chat**.
+- Dedicated **calling**, **incoming call**, and **in-call** screens keep each call state clear.
+- The receiver can **accept or decline**; both sides can safely end the call.
+- In-call controls: **mute/unmute** and **speakerphone** toggle.
+- `audio_session` configures voice-focused audio on Android and iOS, with echo cancellation, auto gain control, and noise suppression.
+- A `CallCubit` coordinates call state while Firestore handles offer/answer and ICE-candidate signalling.
+- Microphone permission is requested only when a call starts; permanently denied permissions route the user to app settings.
 
 ### 🤖 AI Assistant
 - **Built‑in Gemini** — zero configuration, works out of the box.
@@ -107,7 +119,10 @@ Powered by **Flutter + Firebase**, it delivers:
 | [http](https://pub.dev/packages/http) | Direct calls to custom AI providers |
 | [shared_preferences](https://pub.dev/packages/shared_preferences) | Persisted theme & AI settings |
 | [flutter_svg](https://pub.dev/packages/flutter_svg) | SVG icons & illustrations |
-| Courgette | Handwritten‑style accent font |
+| [flutter_webrtc](https://pub.dev/packages/flutter_webrtc) | Real-time peer-to-peer audio calls |
+| [audio_session](https://pub.dev/packages/audio_session) | Voice-call audio focus and routing |
+| [permission_handler](https://pub.dev/packages/permission_handler) | Runtime microphone permission |
+| Courgette | Handwritten-style accent font |
 
 ---
 
@@ -131,6 +146,7 @@ lib/
 ├── features/
 │   ├── auth/                     # Cubit + datasource + repo + views
 │   ├── ai_chat/                  # AI settings, providers & gateway
+│   ├── calls/                     # WebRTC call cubit, signalling repo + call views
 │   ├── chats/                    # Chat list (cubit + tiles)
 │   ├── chat_detail/              # Messages (cubit, repo, chat view)
 │   └── users/                    # Users directory
@@ -145,6 +161,7 @@ lib/
 - ❌ **`Failure` sealed class** — Firebase error codes mapped to friendly Arabic messages.
 - 🧰 **`ChatViewArgs` typed** — no more `Map` arguments in routes.
 - 🛡 **No Firebase imports in views** — the UI only reads from cubits.
+- 📞 **WebRTC stays isolated** — the calls feature owns device audio, peer connections, Firestore signalling, and cleanup.
 
 ---
 
@@ -154,6 +171,7 @@ Ship‑ready rules included in the repo:
 
 - Users: readable by any signed‑in user, writable only by the owner.
 - Chats & messages: **only participants** can read/write.
+- Calls and ICE candidates: **only the caller and receiver** can signal, read, or clean up a call.
 - AI: a dedicated rule lets the `ai_agent` sender write into AI chats.
 - Composite indexes for unread messages & sorted chat lists included (`firestore.indexes.json`).
 
@@ -182,6 +200,8 @@ Enable **Email/Password** in Firebase Auth, create a **Firestore** database, the
 firebase deploy --only firestore:rules
 firebase deploy --only firestore:indexes
 ```
+
+For audio calls, use a physical device or emulator with microphone support and grant the microphone permission when prompted. The repository already includes the Android and iOS microphone declarations.
 
 ### 2️⃣ Run the app
 
@@ -220,10 +240,12 @@ flutter test
 - [x] Read receipts + real unread badges
 - [x] Built‑in Gemini AI assistant
 - [x] 7 custom AI providers + latency test
+- [x] Private WebRTC audio calls with incoming-call, mute and speaker controls
 - [x] Light / dark / system themes
 - [x] Search (chats + users) & delete (message / chat)
 - [ ] 🖼️ Image & file sharing
 - [ ] 🎙️ Voice messages
+- [ ] 📹 Video calls
 - [ ] 🔔 Push notifications (FCM)
 
 ---
